@@ -1,0 +1,74 @@
+$(function () { // Ensure DOM is ready
+
+    // STEP 0: Load categories and set a random one for "Specials"
+    var randomCategoryShortName = "";
+    $dc.loadMenuCategories().then(function (categories) {
+      var randomIndex = Math.floor(Math.random() * categories.length);
+      randomCategoryShortName = "'" + categories[randomIndex].short_name + "'";
+    });
+  
+    // On page load
+    $(document).ready(function () {
+      $dc.loadHomePage();
+    });
+  
+    // Namespace
+    var dc = {};
+    window.$dc = dc;
+  
+    // Convenience function for inserting innerHTML
+    function insertHtml(selector, html) {
+      var targetElem = document.querySelector(selector);
+      targetElem.innerHTML = html;
+    }
+  
+    // Replace {{propName}} with propValue in template
+    function insertProperty(string, propName, propValue) {
+      var propToReplace = "{{" + propName + "}}";
+      var result = string.replace(new RegExp(propToReplace, "g"), propValue);
+      return result;
+    }
+  
+    // Show loading icon inside element
+    function showLoading(selector) {
+      var html = "<div class='text-center'>";
+      html += "<img src='images/ajax-loader.gif'></div>";
+      insertHtml(selector, html);
+    }
+  
+    // Load the home page
+    dc.loadHomePage = function () {
+      showLoading("#main-content");
+  
+      // STEP 1: Load home-snippet.html
+      $ajaxUtils.sendGetRequest("snippets/home-snippet.html", function (responseText) {
+  
+        // STEP 2: Insert randomCategoryShortName
+        var homeHtml = responseText;
+        homeHtml = insertProperty(homeHtml, "randomCategoryShortName", randomCategoryShortName);
+  
+        // STEP 3: Insert HTML into #main-content
+        insertHtml("#main-content", homeHtml);
+  
+      }, false); // false = don't expect JSON
+    };
+  
+    // Load menu categories from server
+    dc.loadMenuCategories = function () {
+      return new Promise(function (resolve) {
+        $ajaxUtils.sendGetRequest(allCategoriesUrl, function (res) {
+          resolve(res);
+        });
+      });
+    };
+  
+    // Load menu items from server
+    dc.loadMenuItems = function (categoryShort) {
+      showLoading("#main-content");
+      $ajaxUtils.sendGetRequest(menuItemsUrl + categoryShort,
+        buildAndShowMenuItemsHTML);
+    };
+  
+    // Additional code...
+  });
+  
